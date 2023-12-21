@@ -23,7 +23,7 @@ exports.registerUser = async (req, res) => {
         await user.save();
 
         // Generar y devolver el token
-        const payload = { user: { id: user.id } };
+        const payload = { user: { id: user.id, username: user.username, email: user.email } };
         jwt.sign(payload, config.secretKey, { expiresIn: 3600 }, (err, token) => {
             if (err) throw err;
             res.json({ token });
@@ -51,7 +51,7 @@ exports.loginUser = async (req, res) => {
         }
 
         // Generar y devolver el token
-        const payload = { user: { id: user.id } };
+        const payload = { user: { id: user.id, username: user.username, email: user.email } };
         jwt.sign(payload, config.secretKey, { expiresIn: 3600 }, (err, token) => {
             if (err) throw err;
             res.json({ token });
