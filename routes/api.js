@@ -14,6 +14,6 @@ router.post('/posts', authMiddleware, postController.createPost);
 // Ruta para editar un post
 router.put('/posts/:id', authMiddleware, postController.editPost);
 // Ruta para borrar un post por ID
-router.delete('/posts/:id', postController.deletePost);
+router.delete('/posts/:id', authMiddleware, postController.deletePost);
 
 module.exports = router;
