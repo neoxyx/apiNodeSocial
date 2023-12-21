@@ -79,3 +79,35 @@ exports.deletePost = async (req, res) => {
     res.status(500).json({ error: 'Error marking post as deleted' });
   }
 };
+
+exports.likePost = async (req, res) => {
+  const postId = req.params.postId;
+
+  try {
+    // Busca el post por ID
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // Verifica si el usuario ya dio like al post (puedes adaptar esto según tus necesidades)
+    const userId = req.user.id; // Suponiendo que tienes el ID del usuario en el objeto de solicitud
+
+    if (post.likedBy.includes(userId)) {
+      return res.status(400).json({ error: 'User already liked this post' });
+    }
+
+    // Incrementa la cantidad de likes y agrega el ID del usuario al array likedBy
+    post.likes += 1;
+    post.likedBy.push(userId);
+
+    // Guarda los cambios en la base de datos
+    const updatedPost = await post.save();
+
+    res.json({ message: 'Post liked successfully', updatedPost });
+  } catch (error) {
+    console.error('Error liking post:', error);
+    res.status(500).json({ error: 'Error liking post' });
+  }
+};
