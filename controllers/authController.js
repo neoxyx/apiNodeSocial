@@ -1,56 +1,63 @@
-// controllers/authController.js
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const config = require('../config');
 const User = require('../models/user');
 
-exports.signup = async (req, res) => {
-    const { username, email, password } = req.body;
-
+exports.registerUser = async (req, res) => {
     try {
+        const { username, email, password } = req.body;
+
         // Verificar si el usuario ya existe
-        const existingUser = await User.findOne({ $or: [{ username }, { email }] });
-        if (existingUser) {
-            return res.status(400).json({ error: 'Usuario o correo electrónico ya registrados' });
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ msg: 'El usuario ya existe' });
         }
 
-        // Crear un nuevo usuario
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, email, password: hashedPassword });
-        await newUser.save();
+        // Crear nuevo usuario
+        user = new User({ username, email, password });
 
-        res.status(201).json({ message: 'Usuario registrado exitosamente' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al registrar usuario' });
+        // Encriptar contraseña
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+
+        await user.save();
+
+        // Generar y devolver el token
+        const payload = { user: { id: user.id } };
+        jwt.sign(payload, config.secretKey, { expiresIn: 3600 }, (err, token) => {
+            if (err) throw err;
+            res.json({ token });
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
     }
 };
 
-exports.login = async (req, res) => {
-    if (!req.body) {
-        return res.status(400).json({ error: 'Cuerpo de solicitud no válido' });
-    }
-
-    const { username, password } = req.body;
-
+exports.loginUser = async (req, res) => {
     try {
+        const { email, password } = req.body;
+
         // Verificar si el usuario existe
-        const user = await User.findOne({ username });
+        let user = await User.findOne({ email });
         if (!user) {
-            return res.status(401).json({ error: 'Credenciales incorrectas' });
+            return res.status(400).json({ msg: 'Credenciales inválidas' });
         }
 
-        // Verificar la contraseña
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ error: 'Credenciales incorrectas' });
+        // Verificar contraseña
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ msg: 'Credenciales inválidas' });
         }
 
-        // Generar token JWT
-        const token = jwt.sign({ user: { id: user._id, username: user.username } }, 'tu-secreto-super-seguro', { expiresIn: '1h' }); // Ajusta según tus necesidades
-
-        res.json({ token });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error al iniciar sesión' });
+        // Generar y devolver el token
+        const payload = { user: { id: user.id } };
+        jwt.sign(payload, config.secretKey, { expiresIn: 3600 }, (err, token) => {
+            if (err) throw err;
+            res.json({ token });
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Error del servidor');
     }
 };

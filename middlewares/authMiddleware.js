@@ -1,19 +1,18 @@
-// middlewares/authMiddleware.js
 const jwt = require('jsonwebtoken');
+const config = require('../config');
 
-module.exports = (req, res, next) => {
-    const token = req.header('x-auth-token');
+const authMiddleware = (req, res, next) => {
+  const token = req.header('x-auth-token');
 
-    if (!token) {
-        return res.status(401).json({ error: 'Acceso no autorizado, falta el token' });
-    }
+  if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
 
-    try {
-        const decoded = jwt.verify(token, 'tu-secreto-super-seguro'); // Asegúrate de cambiar esto
-        req.user = decoded.user;
-        next();
-    } catch (error) {
-        console.error(error);
-        res.status(401).json({ error: 'Token no válido' });
-    }
+  try {
+    const decoded = jwt.verify(token, config.secretKey);
+    req.user = decoded.user;
+    next();
+  } catch (e) {
+    res.status(400).json({ msg: 'Token is not valid' });
+  }
 };
+
+module.exports = authMiddleware;
